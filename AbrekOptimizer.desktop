@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Abrek Optimizer
+GenericName=Program Kaldırma ve Temizleme Aracı
+Comment=Linux için kaldırma, temizleme ve performans aracı
+TryExec=/home/bbbb/.local/bin/abrek-optimizer
+Exec=/home/bbbb/.local/bin/abrek-optimizer
+Icon=abrek-optimizer
+Terminal=false
+StartupWMClass=abrekoptimizer
+Categories=System;
+Keywords=paket;kaldır;temizle;cache;performans;
+StartupNotify=true

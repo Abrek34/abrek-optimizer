@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abrek-optimizer"
+# Sürüm tek doğruluk kaynağı olarak abrekoptimizer/__init__.py'deki
+# __version__ değişkenidir; buraya sabit yazılmaz (dynamic).
+dynamic = ["version"]
+description = "Linux için kaldırma, sistem temizleme ve performans aracı (PySide6)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PySide6>=6.6",
+    "psutil>=5.9",
+]
+
+[project.scripts]
+abrek-optimizer = "abrekoptimizer.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["abrekoptimizer*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "abrekoptimizer.__version__" }
