@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, QTimer, Signal, QSize
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog,
     QDialogButtonBox, QFormLayout, QGroupBox, QHBoxLayout, QHeaderView,
@@ -27,6 +27,7 @@ from abrekoptimizer.core import history
 from abrekoptimizer.core import trend
 from abrekoptimizer.core import profiles as prof
 from abrekoptimizer.core.pkgmanager import PackageManager
+from abrekoptimizer.ui.charts import TimeSeriesChart
 
 
 # ---------- yardımcılar ----------
@@ -446,20 +447,25 @@ class CleanerTab(QWidget):
 
     def _clean_root(self, t: cl.CleanTarget):
         import shlex
-        cmds = []
-        for p in t.paths:
-            if p.exists():
-                cmds.append(f"sudo find {shlex.quote(str(p))} -mindepth 1 -delete 2>/dev/null || true")
-        if cmds:
-            reply = QMessageBox.question(
-                self, _("Onayla"),
-                _("'{label}' root ile temizlenecek. Emin misiniz?").format(label=_(t.label)),
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-            )
-            if reply != QMessageBox.Yes:
+        if t.root_command is not None:
+            cmd = list(t.root_command)
+        else:
+            cmds = []
+            for p in t.paths:
+                if p.exists():
+                    cmds.append(f"sudo find {shlex.quote(str(p))} -mindepth 1 -delete 2>/dev/null || true")
+            if not cmds:
                 return
-            run_in_app(self, _(t.label), ["bash", "-lc", " ; ".join(cmds)])
-            self.log.append(_("↗ {label}: uygulamada çalıştırıldı (root)").format(label=_(t.label)))
+            cmd = ["bash", "-lc", " ; ".join(cmds)]
+        reply = QMessageBox.question(
+            self, _("Onayla"),
+            _("'{label}' root ile temizlenecek. Emin misiniz?").format(label=_(t.label)),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        run_in_app(self, _(t.label), cmd)
+        self.log.append(_("↗ {label}: uygulamada çalıştırıldı (root)").format(label=_(t.label)))
 
     def vacuum(self):
         reply = QMessageBox.question(
@@ -574,6 +580,25 @@ class PerfTab(QWidget):
         self.info_lbl.setTextFormat(Qt.RichText)
         layout.addWidget(self.info_lbl)
 
+        # Ağ / disk I/O hızları
+        self.io_lbl = QLabel("—")
+        self.io_lbl.setTextFormat(Qt.RichText)
+        layout.addWidget(self.io_lbl)
+
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(QLabel(_("Süreç ara:")))
+        self.proc_filter = QLineEdit()
+        self.proc_filter.setPlaceholderText(_("Ad veya PID..."))
+        self.proc_filter.textChanged.connect(self._apply_proc_filter)
+        filter_row.addWidget(self.proc_filter, 1)
+        layout.addLayout(filter_row)
+
+        # Zaman serisi grafiği
+        layout.addWidget(QLabel(_("<b>Zaman serisi (CPU / RAM / GPU)</b>")))
+        self.chart = TimeSeriesChart(
+            {"CPU": QColor("#4fc3f7"), "RAM": QColor("#81c784"), "GPU": QColor("#ffb74d")})
+        layout.addWidget(self.chart)
+
         layout.addWidget(QLabel(_("<b>En çok bellek kullanan süreçler</b>")))
         self.proc_table = QTableWidget(0, 5)
         self.proc_table.setHorizontalHeaderLabels([_("PID"), _("Kullanıcı"), _("Ad"), _("CPU %"), _("RAM %")])
@@ -608,18 +633,42 @@ class PerfTab(QWidget):
         self.mem_bar.bar.setValue(int(s.mem_percent))
         self.swap_bar.bar.setValue(int(s.swap_percent))
         self.disk_bar.bar.setValue(int(s.disk_percent))
+        try:
+            self.chart.push({"CPU": s.cpu_percent, "RAM": s.mem_percent, "GPU": s.gpu_busy})
+        except Exception:
+            pass
         self.info_lbl.setText(
-            _("RAM: <b>{used}</b> / {total} &nbsp;|&nbsp; Disk: <b>{dused}</b> / {dtotal} &nbsp;|&nbsp; Süreç: <b>{procs}</b> &nbsp;|&nbsp; Yük: {l1:.2f} {l2:.2f} {l3:.2f}").format(
+            _("RAM: <b>{used}</b> / {total} &nbsp;|&nbsp; Disk: <b>{dused}</b> / {dtotal} &nbsp;|&nbsp; "
+              "Süreç: <b>{procs}</b> &nbsp;|&nbsp; Yük: {l1:.2f} {l2:.2f} {l3:.2f} &nbsp;|&nbsp; "
+              "CPU: {freq:.0f} MHz").format(
                 used=cl.human_size(s.mem_used), total=cl.human_size(s.mem_total),
                 dused=cl.human_size(s.disk_used), dtotal=cl.human_size(s.disk_total),
                 procs=s.process_count, l1=s.load_avg[0], l2=s.load_avg[1], l3=s.load_avg[2],
+                freq=s.cpu_freq_mhz,
+            )
+        )
+        self.io_lbl.setText(
+            _("Ağ: ↓{dr} ↑{ur} &nbsp;|&nbsp; Disk I/O: R {rr} W {wr}").format(
+                dr=cl.human_size(int(s.net_recv_rate)) + "/s",
+                ur=cl.human_size(int(s.net_sent_rate)) + "/s",
+                rr=cl.human_size(int(s.disk_read_rate)) + "/s",
+                wr=cl.human_size(int(s.disk_write_rate)) + "/s",
             )
         )
         try:
             procs = pm.top_processes("memory", 20)
         except Exception:
             procs = []
-        self._fill_proc_table(procs)
+        self._proc_cache = procs
+        self._apply_proc_filter(self.proc_filter.text() if hasattr(self, "proc_filter") else "")
+
+    def _apply_proc_filter(self, text: str = ""):
+        t = text.lower().strip()
+        rows = getattr(self, "_proc_cache", [])
+        if t:
+            rows = [p for p in rows if t in str(p.get("name", "")).lower()
+                    or t in str(p.get("pid", ""))]
+        self._fill_proc_table(rows)
 
     def _fill_proc_table(self, procs):
         # Yeniden çizimi azalt: sadece metinleri güncelle, gereksizse satır sayısını değiştirme
@@ -642,6 +691,9 @@ class PerfTab(QWidget):
                         self.proc_table.setItem(i, j, QTableWidgetItem(v))
                     elif item.text() != v:
                         item.setText(v)
+            # fazlalık satırları temizle
+            if self.proc_table.rowCount() > len(procs):
+                self.proc_table.setRowCount(len(procs))
             self.proc_table.setSortingEnabled(True)
         finally:
             self.proc_table.setUpdatesEnabled(True)
@@ -1381,6 +1433,9 @@ class ReportTab(QWidget):
         self.bench_btn = QPushButton(_("Benchmark çalıştır (~8sn)"))
         self.bench_btn.clicked.connect(self.run_bench)
         row.addWidget(self.bench_btn)
+        self.export_btn = QPushButton(_("Raporu kaydet..."))
+        self.export_btn.clicked.connect(self._export)
+        row.addWidget(self.export_btn)
         row.addStretch(1)
         layout.addLayout(row)
         self.bench_log = QPlainTextEdit()
@@ -1418,6 +1473,25 @@ class ReportTab(QWidget):
         self._worker.done.connect(self._render)
         self._worker.failed.connect(lambda m: self.view.setHtml(f"<b>{_('Hata')}:</b> {m}"))
         self._worker.start()
+
+    def _export(self):
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(
+            self, _("Raporu kaydet"), "abrek-rapor.html", "HTML (*.html);;Text (*.txt)")
+        if not path:
+            return
+        try:
+            if path.endswith(".txt"):
+                # HTML tag'larını temizle
+                import re
+                txt = re.sub(r"<[^>]+>", "", self.view.toHtml())
+                Path(path).write_text(txt, encoding="utf-8")
+            else:
+                Path(path).write_text(self.view.toHtml(), encoding="utf-8")
+            history.record("rapor_kayit", path)
+            notify(_("Rapor kaydedildi"), path)
+        except OSError as e:
+            QMessageBox.warning(self, _("Hata"), str(e))
 
     def _render(self, st):
         if self.sender() is not self._worker:

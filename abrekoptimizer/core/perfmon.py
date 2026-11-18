@@ -30,6 +30,11 @@ class Snapshot:
     disk_write: int = 0
     net_sent: int = 0
     net_recv: int = 0
+    # anlık hızlar (byte/s, son örnekleme aralığına göre)
+    net_sent_rate: float = 0.0
+    net_recv_rate: float = 0.0
+    disk_read_rate: float = 0.0
+    disk_write_rate: float = 0.0
     load_avg: tuple[float, float, float] = (0.0, 0.0, 0.0)
     boot_time: float = 0.0
     process_count: int = 0
@@ -133,13 +138,16 @@ def _gpu_info() -> tuple[float, float, int, int, str]:
     return busy, temp, mem_u, mem_t, name
 
 
-# Disk I/O delta (önceki snapshot'la karşılaştır)
+# Disk I/O ve ağ sayaçları (önceki snapshot'la karşılaştır) — hız hesabı için zaman da tutulur
 _prev_disk = psutil.disk_io_counters()
+_prev_net = psutil.net_io_counters()
+_prev_time: float | None = None
 
 
 def snapshot() -> Snapshot:
-    global _prev_disk
+    global _prev_disk, _prev_net, _prev_time
     s = Snapshot()
+    now = time.time()
     s.cpu_percent = psutil.cpu_percent(interval=None)
     s.cpu_per_core = psutil.cpu_percent(interval=None, percpu=True)
     try:
@@ -165,15 +173,38 @@ def snapshot() -> Snapshot:
     s.disk_used = du.used
     s.disk_total = du.total
 
-    cur = psutil.disk_io_counters()
-    if cur and _prev_disk:
-        s.disk_read = max(0, cur.read_bytes - _prev_disk.read_bytes)
-        s.disk_write = max(0, cur.write_bytes - _prev_disk.write_bytes)
-    _prev_disk = cur
+    cur_disk = psutil.disk_io_counters()
+    cur_net = psutil.net_io_counters()
 
-    nio = psutil.net_io_counters()
-    s.net_sent = nio.bytes_sent
-    s.net_recv = nio.bytes_recv
+    if _prev_time is None:
+        # İlk örnek: hız bilinemez (0).
+        s.disk_read = 0
+        s.disk_write = 0
+        s.disk_read_rate = 0.0
+        s.disk_write_rate = 0.0
+        s.net_sent_rate = 0.0
+        s.net_recv_rate = 0.0
+    else:
+        elapsed = max(now - _prev_time, 1e-6)
+        if cur_disk and _prev_disk:
+            dr = max(0, cur_disk.read_bytes - _prev_disk.read_bytes)
+            dw = max(0, cur_disk.write_bytes - _prev_disk.write_bytes)
+            s.disk_read = dr
+            s.disk_write = dw
+            s.disk_read_rate = dr / elapsed
+            s.disk_write_rate = dw / elapsed
+        if cur_net and _prev_net:
+            ns = max(0, cur_net.bytes_sent - _prev_net.bytes_sent)
+            nr = max(0, cur_net.bytes_recv - _prev_net.bytes_recv)
+            s.net_sent_rate = ns / elapsed
+            s.net_recv_rate = nr / elapsed
+
+    s.net_sent = cur_net.bytes_sent if cur_net else 0
+    s.net_recv = cur_net.bytes_recv if cur_net else 0
+
+    _prev_disk = cur_disk
+    _prev_net = cur_net
+    _prev_time = now
 
     try:
         s.load_avg = psutil.getloadavg()

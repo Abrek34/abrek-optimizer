@@ -295,6 +295,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "CPU ~{cpu:,.0f} op/s | Memory copy ~{mem:.1f} GB/s | Disk write ~{disk:.0f} MB/s",
         "Açık kalma: <b>{up}</b> &nbsp;|&nbsp; CPU: {cpu:.0f}°C &nbsp;|&nbsp; RAM: <b>{used}</b> / {total} &nbsp;|&nbsp; Disk: <b>{dused}</b> / {dtotal} &nbsp;|&nbsp; Süreç: <b>{procs}</b> &nbsp;|&nbsp; Yük: {l1:.2f}":
             "Uptime: <b>{up}</b> &nbsp;|&nbsp; CPU: {cpu:.0f}°C &nbsp;|&nbsp; RAM: <b>{used}</b> / {total} &nbsp;|&nbsp; Disk: <b>{dused}</b> / {dtotal} &nbsp;|&nbsp; Processes: <b>{procs}</b> &nbsp;|&nbsp; Load: {l1:.2f}",
+        "Süreç ara:": "Search processes:",
+        "Ad veya PID...": "Name or PID...",
+        "Raporu kaydet...": "Save report...",
+        "Rapor kaydedildi": "Report saved",
     }
 }
 

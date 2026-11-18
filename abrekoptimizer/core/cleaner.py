@@ -41,6 +41,8 @@ class CleanTarget:
     paths: list[Path] = field(default_factory=list)
     needs_root: bool = False
     description: str = ""
+    # needs_root=True iken find-delete yerine çalıştırılacak özel komut (örn. journalctl vacuum).
+    root_command: list[str] | None = None
 
     def size(self) -> int:
         total = 0
@@ -152,6 +154,7 @@ def default_targets() -> list[CleanTarget]:
             [Path("/var/log/journal")],
             needs_root=True,
             description="Sistem günlükleri. journalctl --vacuum kullanır.",
+            root_command=["sudo", "journalctl", "--vacuum-time=7d"],
         ),
         CleanTarget(
             "Paket yöneticisi önbelleği",
