@@ -14,6 +14,7 @@ from abrekoptimizer.core import history
 from abrekoptimizer.core import profiles as prof
 from abrekoptimizer.core import snapshot as snap
 from abrekoptimizer.ui.runtime import confirm_and_run, notify, run_in_app
+from abrekoptimizer.ui.plan_dialog import PlanDialog
 
 
 class GameStatusWorker(QThread):
@@ -404,6 +405,17 @@ class GameModeTab(QWidget):
             QMessageBox.information(self, _("Bilgi"), _("Uygulanacak öneri yok."))
             return
         body = "\n".join(f"{i}. {r.title}" for i, r in enumerate(self._recommendations, 1))
+        # Plan dialog: komutları önizle (dry-run)
+        all_cmds = []
+        descs = []
+        for r in self._recommendations:
+            for cmd in r.commands:
+                all_cmds.append(cmd)
+                descs.append(r.title)
+        if all_cmds:
+            plan = PlanDialog(self, _("Uygulama Planı"), all_cmds, descs)
+            if not plan.exec() or not plan.accepted_plan:
+                return
         reply = QMessageBox.warning(
             self, _("Onayla"),
             _("Toplam {n} öneri terminalde sırayla çalıştırılacak.").format(n=len(self._recommendations))

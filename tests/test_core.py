@@ -426,6 +426,24 @@ class TestSnapshot(unittest.TestCase):
         self.assertIn("performance", text)
 
 
+class TestPlanDialog(unittest.TestCase):
+    def test_plan_dialog_import(self):
+        from abrekoptimizer.ui.plan_dialog import PlanDialog
+        self.assertTrue(PlanDialog is not None)
+
+    def test_plan_dialog_creation(self):
+        import os
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance() or QApplication([])
+        from abrekoptimizer.ui.plan_dialog import PlanDialog
+        cmds = [["echo", "hello"], ["echo", "world"]]
+        descs = ["Say hello", "Say world"]
+        dlg = PlanDialog(None, "Test Plan", cmds, descs)
+        self.assertEqual(dlg._commands, cmds)
+        self.assertFalse(dlg.accepted_plan)
+
+
 if __name__ == "__main__":
     unittest.main()
 

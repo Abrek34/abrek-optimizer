@@ -35,6 +35,12 @@ def run_in_terminal(cmd: list[str]) -> bool:
     import shlex, shutil
     log = applog.get("ui")
     joined = " ".join(shlex.quote(c) for c in cmd)
+    log.info("terminal command: %s", joined)
+    try:
+        from abrekoptimizer.core import history
+        history.record("terminal_komut", joined[:200])
+    except Exception:
+        pass
     full = f"{joined}; echo; read -p 'Bitti. Enter ile kapat...'"
     for term, args in (
         ("konsole", ["-e", "bash", "-lc", full]),
@@ -130,6 +136,13 @@ class CommandDialog(QDialog):
 
 def run_in_app(parent, title: str, cmd: list[str]) -> None:
     joined = " ".join(cmd)
+    log = applog.get("ui")
+    log.info("in-app command: %s", joined[:300])
+    try:
+        from abrekoptimizer.core import history
+        history.record("uygulama_komutu", f"{title}: {joined[:150]}")
+    except Exception:
+        pass
     needs_sudo = (cmd and cmd[0] == "sudo") or " sudo " in joined or "'sudo'" in joined or joined.startswith("sudo")
     if needs_sudo:
         try:
