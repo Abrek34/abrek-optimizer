@@ -14,6 +14,7 @@ Linux için **Abrek Optimizer**: kaldırma + sistem temizleme + performans izlem
 - **Başlangıç (Autostart)**: `~/.config/autostart` ve `/etc/xdg/autostart` altındaki `.desktop` girdilerini listeler, tek tıkla devre dışı bırakır (sistem girdileri için kullanıcı dizinine override yazar).
 - **Performans**: CPU/RAM/Swap/Disk canlı çubukları, yük ortalaması, en çok bellek kullanan süreçler, tek tıkla `SIGTERM` gönderme.
 - **Oyun Modu**: sistemsel optimizasyon önerileri (scx scheduler, EPP, BBR, zram, THP, KWin tearing...), durum-farkında, geri alınabilir; profilleri kaydet/yükle.
+- **Snapshot / Geri Yükle**: optimizasyon uygulamadan önce mevcut sistem ayarlarını (governor, EPP, PPD, swappiness, THP, TCP, scx, KWin) anlık görüntü olarak kaydet; sorun olursa tek tıkla önceki duruma dön.
 - **Disk Analizi**: du tabanlı en büyük 20 klasör.
 - **Rapor**: sağlık skoru + öneri listesi + trend + benchmark + son işlemler.
 - **Geçmiş**: tüm işlem kayıtları (JSONL).
@@ -99,13 +100,23 @@ Abrek Optimizer Linux/
 │   │   ├── cleaner.py     # cache/log/tmp temizleyici (+korumalı dizinler)
 │   │   ├── autostart.py   # XDG autostart + systemd user servisleri
 │   │   ├── perfmon.py     # psutil tabanlı izleme
-│   │   ├── gameopt.py     # oyun/sistem optimizasyonu
+│   │   ├── gameopt/       # oyun/sistem optimizasyonu (paket)
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py  # Status, Recommendation
+│   │   │   ├── detect.py  # sistem durumu tespiti
+│   │   │   ├── commands.py # komut üreticileri
+│   │   │   ├── recommendations.py # öneri motoru
+│   │   │   └── _helpers.py # ortak yardımcılar
 │   │   ├── profiles.py    # profil kaydet/yükle
+│   │   ├── snapshot.py    # sistem anlık görüntüsü & geri yükleme
 │   │   ├── history.py     # işlem geçmişi (JSONL)
 │   │   ├── trend.py       # saatlik sağlık skoru trendi
 │   │   └── applog.py      # log altyapısı
 │   └── ui/
-│       └── main_window.py # PySide6 sekmeli arayüz
+│       ├── main_window.py # PySide6 ana pencere (ince)
+│       ├── runtime.py     # komut çalıştırma yardımcıları
+│       ├── *_tab.py       # sekme modülleri (packages, cleaner, perf, game, ...)
+│       └── charts.py      # zaman serisi grafiği
 ├── installer.py           # GUI kurulum sihirbazı
 ├── install-gui.sh         # GUI başlatıcı
 └── README.md

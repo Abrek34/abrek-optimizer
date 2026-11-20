@@ -147,7 +147,12 @@ def default_targets() -> list[CleanTarget]:
             "Geçici dosyalar (/tmp)",
             [Path("/tmp")],
             needs_root=True,
-            description="Sistem geçici klasörü. Açık uygulamalar etkilenebilir.",
+            description="Sistem geçici klasörü. Açık uygulamalar etkilenebilir. "
+                        "Sadece 1 günden eski dosyalar silinir; aktif dosyalar korunur.",
+            root_command=["sudo", "find", "/tmp", "-mindepth", "1", "-mtime", "+1",
+                          "-not", "-path", "/tmp/.X11-unix/*",
+                          "-not", "-path", "/tmp/.ICE-unix/*",
+                          "-delete"],
         ),
         CleanTarget(
             "Sistem logları (journalctl)",

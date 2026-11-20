@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
+    QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
     QMessageBox, QPushButton, QScrollArea, QSpinBox, QTextEdit,
     QVBoxLayout, QWidget,
 )
@@ -12,6 +12,7 @@ from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import gameopt as go
 from abrekoptimizer.core import history
 from abrekoptimizer.core import profiles as prof
+from abrekoptimizer.core import snapshot as snap
 from abrekoptimizer.ui.runtime import confirm_and_run, notify, run_in_app
 
 
@@ -187,6 +188,40 @@ class GameModeTab(QWidget):
         scx_back.clicked.connect(lambda: confirm_and_run(self, go.cmd_scx_stop()))
         rf.addRow(self._hbox(gov_auto, epp_auto, prof_bal, thp_back, swap_back, scx_back))
         root.addWidget(rv_box)
+
+        # --- Snapshot / Geri yükle
+        snap_box = QGroupBox(_("Anlık Görüntü (Snapshot) & Geri Yükle"))
+        snap_lay = QFormLayout(snap_box)
+        snap_info = QLabel(
+            "Optimizasyon uygulamadan önce mevcut sistem ayarlarını kaydedin. "
+            "Sorun olursa tek tıkla önceki duruma dönün."
+        )
+        snap_info.setWordWrap(True)
+        snap_lay.addRow(snap_info)
+        snap_row = QHBoxLayout()
+        self.snap_name_edit = QLineEdit()
+        self.snap_name_edit.setPlaceholderText(_("Snapshot adı (boş = otomatik)"))
+        snap_row.addWidget(self.snap_name_edit, 1)
+        snap_save_btn = QPushButton(_("Snapshot Al"))
+        snap_save_btn.clicked.connect(self._snapshot_save)
+        snap_row.addWidget(snap_save_btn)
+        snap_lay.addRow(snap_row)
+
+        self.snap_combo = QComboBox()
+        snap_restore_btn = QPushButton(_("Geri Yükle"))
+        snap_restore_btn.clicked.connect(self._snapshot_restore)
+        snap_delete_btn = QPushButton(_("Sil"))
+        snap_delete_btn.clicked.connect(self._snapshot_delete)
+        snap_list_btn = QPushButton(_("Listeyi Yenile"))
+        snap_list_btn.clicked.connect(self._refresh_snapshots)
+        snap_lay.addRow(_("Snapshot:"), self.snap_combo)
+        snap_btn_row = QHBoxLayout()
+        for b in (snap_restore_btn, snap_delete_btn, snap_list_btn):
+            snap_btn_row.addWidget(b)
+        snap_btn_wrap = QWidget(); snap_btn_wrap.setLayout(snap_btn_row)
+        snap_lay.addRow(snap_btn_wrap)
+        root.addWidget(snap_box)
+        self._refresh_snapshots()
 
         # --- Paket kurulum kısayolları
         pkg_box = QGroupBox(_("Eksik paketleri kur (CachyOS / Arch)"))
@@ -446,3 +481,62 @@ class GameModeTab(QWidget):
             prof.save_all(profiles)
             self._refresh_profiles()
             history.record("profil_silme", name)
+
+    # ---------- Snapshot yönetimi ----------
+    def _refresh_snapshots(self):
+        self.snap_combo.clear()
+        for s in snap.list_snapshots():
+            self.snap_combo.addItem(s.name, s.name)
+
+    def _snapshot_save(self):
+        name = self.snap_name_edit.text().strip()
+        try:
+            s = snap.capture(name=name, notes="Manuel snapshot (UI)")
+        except Exception as e:
+            QMessageBox.warning(self, _("Hata"), str(e))
+            return
+        history.record("snapshot_alma", s.name)
+        notify(_("Snapshot alındı"), s.name)
+        self.snap_name_edit.clear()
+        self._refresh_snapshots()
+        # seç
+        idx = self.snap_combo.findData(s.name)
+        if idx >= 0:
+            self.snap_combo.setCurrentIndex(idx)
+
+    def _snapshot_restore(self):
+        name = self.snap_combo.currentData()
+        if not name:
+            QMessageBox.information(self, _("Bilgi"), _("Lütfen bir snapshot seçin."))
+            return
+        s = snap.load(name)
+        if s is None:
+            QMessageBox.warning(self, _("Hata"), _("Snapshot yuklenemedi."))
+            return
+        cmds = snap.restore_commands(s)
+        if not cmds:
+            QMessageBox.information(self, _("Bilgi"), _("Geri yuklenecek ayar yok."))
+            return
+        import shlex
+        full = " ; ".join(" ".join(shlex.quote(x) for x in cmd) for cmd in cmds)
+        reply = QMessageBox.question(
+            self, _("Onayla"),
+            _("'{name}' snapshot'ına geri dönülecek. Emin misiniz?\n\n").format(name=name)
+            + snap.format_snapshot(s),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        history.record("snapshot_geri_yukleme", name)
+        run_in_app(self, _("Snapshot geri yükleme"), ["bash", "-lc", full])
+        self.reload()
+
+    def _snapshot_delete(self):
+        name = self.snap_combo.currentData()
+        if not name:
+            return
+        if QMessageBox.question(self, _("Onayla"), _("'{name}' snapshot'ı silinsin mi?").format(name=name)) != QMessageBox.Yes:
+            return
+        snap.delete(name)
+        history.record("snapshot_silme", name)
+        self._refresh_snapshots()

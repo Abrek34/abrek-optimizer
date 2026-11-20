@@ -191,6 +191,241 @@ class TestCleanerSymlink(unittest.TestCase):
             self.assertLess(t.size(), 1000)  # 5000 sayılmaz
 
 
+class TestCleanerExtra(unittest.TestCase):
+    def test_tmp_target_has_root_command(self):
+        from abrekoptimizer.core import cleaner as cl
+        targets = cl.default_targets()
+        tmp_targets = [t for t in targets if "Geçici" in t.label or "/tmp" in str(t.paths)]
+        self.assertTrue(len(tmp_targets) > 0)
+        for t in tmp_targets:
+            self.assertIsNotNone(t.root_command, f"{t.label} root_command None")
+            self.assertIn("find", t.root_command)
+
+    def test_human_size(self):
+        from abrekoptimizer.core import cleaner as cl
+        self.assertEqual(cl.human_size(0), "0.0 B")
+        self.assertEqual(cl.human_size(1024), "1.0 KB")
+        self.assertEqual(cl.human_size(1024 * 1024), "1.0 MB")
+
+    def test_protected_prefixes(self):
+        from abrekoptimizer.core import cleaner as cl
+        # ~/.config is protected
+        self.assertTrue(cl._is_protected(Path.home() / ".config" / "test"))
+        # ~/.ssh is protected
+        self.assertTrue(cl._is_protected(Path.home() / ".ssh" / "id_rsa"))
+        # /tmp is not protected
+        self.assertFalse(cl._is_protected(Path("/tmp") / "test.txt"))
+
+
+class TestAutostart(unittest.TestCase):
+    def test_parse_desktop_basic(self):
+        import tempfile
+        from pathlib import Path
+        from abrekoptimizer.core import autostart as au
+        content = (
+            "[Desktop Entry]\n"
+            "Name=Test App\n"
+            "Exec=/usr/bin/test-app\n"
+            "Comment=A test application\n"
+            "Icon=test-icon\n"
+            "Hidden=false\n"
+        )
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "test.desktop"
+            p.write_text(content)
+            entry = au._parse_desktop(p)
+            self.assertIsNotNone(entry)
+            self.assertEqual(entry.name, "Test App")
+            self.assertEqual(entry.exec_cmd, "/usr/bin/test-app")
+            self.assertTrue(entry.enabled)
+            self.assertEqual(entry.icon, "test-icon")
+
+    def test_parse_desktop_hidden(self):
+        import tempfile
+        from pathlib import Path
+        from abrekoptimizer.core import autostart as au
+        content = (
+            "[Desktop Entry]\n"
+            "Name=Hidden App\n"
+            "Exec=/usr/bin/hidden\n"
+            "Hidden=true\n"
+        )
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "hidden.desktop"
+            p.write_text(content)
+            entry = au._parse_desktop(p)
+            self.assertIsNotNone(entry)
+            self.assertFalse(entry.enabled)
+
+    def test_set_xdg_enabled_creates_override(self):
+        import tempfile
+        from pathlib import Path
+        from abrekoptimizer.core import autostart as au
+        import unittest.mock as mock
+        content = "[Desktop Entry]\nName=Test\nExec=/usr/bin/test\n"
+        with tempfile.TemporaryDirectory() as d:
+            # patch home
+            fake_home = Path(d)
+            with mock.patch.object(Path, "home", return_value=fake_home):
+                src = fake_home / ".config" / "autostart" / "test.desktop"
+                src.parent.mkdir(parents=True, exist_ok=True)
+                src.write_text(content)
+                entry = au.AutostartEntry(
+                    name="Test", path=src, exec_cmd="/usr/bin/test",
+                    enabled=True, source="xdg",
+                )
+                result = au.set_xdg_enabled(entry, False)
+                self.assertTrue(result.exists())
+                text = result.read_text()
+                self.assertIn("Hidden=true", text)
+
+
+class TestProfiles(unittest.TestCase):
+    def test_capture_and_commands(self):
+        from abrekoptimizer.core import profiles as prof
+        from abrekoptimizer.core import gameopt as go
+        st = go.Status(
+            cpu_governor="performance", epp="performance",
+            power_profile="performance", swappiness=10, thp="madvise",
+            amd_x3d_mode="cache", tcp_cc="bbr",
+        )
+        data = prof.capture_from_status(st)
+        self.assertEqual(data["governor"], "performance")
+        self.assertEqual(data["swappiness"], 10)
+        self.assertTrue(data["bbr"])
+        p = prof.Profile(name="test", **data)
+        cmds = p.commands()
+        self.assertTrue(len(cmds) > 0)
+        joined = " ".join(" ".join(c) for c in cmds)
+        self.assertIn("frequency-set", joined)
+        self.assertIn("tcp_congestion_control", joined)
+
+    def test_save_load_roundtrip(self):
+        import tempfile, pathlib
+        from abrekoptimizer.core import profiles as prof
+        tmp = pathlib.Path(tempfile.mkdtemp()) / "profiles.json"
+        with unittest.mock.patch.object(prof, "PROFILES_FILE", tmp):
+            p = prof.Profile(name="x", governor="performance", bbr=True)
+            prof.save_all({"x": p})
+            loaded = prof.load_all()
+            self.assertIn("x", loaded)
+            self.assertEqual(loaded["x"].governor, "performance")
+            self.assertTrue(loaded["x"].bbr)
+
+    def test_load_corrupt_file(self):
+        import tempfile, pathlib
+        from abrekoptimizer.core import profiles as prof
+        tmp = pathlib.Path(tempfile.mkdtemp()) / "profiles.json"
+        tmp.write_text("not json {{{")
+        with unittest.mock.patch.object(prof, "PROFILES_FILE", tmp):
+            result = prof.load_all()
+            self.assertEqual(result, {})
+
+
+class TestHistoryExtra(unittest.TestCase):
+    def test_record_and_entries(self):
+        import tempfile, pathlib
+        from abrekoptimizer.core import history as h
+        tmp = pathlib.Path(tempfile.mkdtemp()) / "history.jsonl"
+        with unittest.mock.patch.object(h, "HISTORY_FILE", tmp):
+            h.record("test_action", "detail1", ok=True)
+            h.record("test_action2", "detail2", ok=False)
+            ents = h.entries()
+            self.assertEqual(len(ents), 2)
+            self.assertEqual(ents[0]["action"], "test_action2")  # newest first
+            self.assertFalse(ents[0]["ok"])
+            self.assertTrue(ents[1]["ok"])
+
+    def test_entries_limit(self):
+        import tempfile, pathlib
+        from abrekoptimizer.core import history as h
+        tmp = pathlib.Path(tempfile.mkdtemp()) / "history.jsonl"
+        with unittest.mock.patch.object(h, "HISTORY_FILE", tmp):
+            for i in range(10):
+                h.record(f"action_{i}")
+            ents = h.entries(limit=3)
+            self.assertEqual(len(ents), 3)
+
+    def test_entries_empty_file(self):
+        import tempfile, pathlib
+        from abrekoptimizer.core import history as h
+        tmp = pathlib.Path(tempfile.mkdtemp()) / "nonexistent.jsonl"
+        with unittest.mock.patch.object(h, "HISTORY_FILE", tmp):
+            self.assertEqual(h.entries(), [])
+
+
+class TestSnapshot(unittest.TestCase):
+    def setUp(self):
+        import tempfile, pathlib
+        self._tmp = tempfile.mkdtemp()
+        self._old_dir = None
+        import abrekoptimizer.core.snapshot as snap
+        self._snap = snap
+        self._old_snap_dir = snap.SNAPSHOT_DIR
+        snap.SNAPSHOT_DIR = pathlib.Path(self._tmp) / "snapshots"
+
+    def tearDown(self):
+        self._snap.SNAPSHOT_DIR = self._old_snap_dir
+
+    def test_capture_and_load(self):
+        import unittest.mock as mock
+        fake_status = self._snap.go.Status(
+            cpu_governor="performance", epp="performance", power_profile="performance",
+            swappiness=10, thp="madvise", vm_max_map_count=1048576,
+            tcp_cc="bbr", tcp_qdisc="fq", scx_running="scx_bpfland",
+            zram_active=True, kernel="6.12.0-cachyos",
+        )
+        with mock.patch.object(self._snap.go, "read_status", return_value=fake_status):
+            s = self._snap.capture(name="test_snap", notes="unit test")
+        self.assertEqual(s.name, "test_snap")
+        self.assertEqual(s.cpu_governor, "performance")
+        self.assertEqual(s.swappiness, 10)
+        loaded = self._snap.load("test_snap")
+        self.assertIsNotNone(loaded)
+        self.assertEqual(loaded.name, "test_snap")
+        self.assertEqual(loaded.tcp_cc, "bbr")
+
+    def test_list_and_delete(self):
+        import unittest.mock as mock
+        fake_status = self._snap.go.Status(cpu_governor="schedutil")
+        with mock.patch.object(self._snap.go, "read_status", return_value=fake_status):
+            self._snap.capture(name="snap_a")
+            self._snap.capture(name="snap_b")
+        snaps = self._snap.list_snapshots()
+        names = [s.name for s in snaps]
+        self.assertIn("snap_a", names)
+        self.assertIn("snap_b", names)
+        self.assertTrue(self._snap.delete("snap_a"))
+        names2 = [s.name for s in self._snap.list_snapshots()]
+        self.assertNotIn("snap_a", names2)
+        self.assertIn("snap_b", names2)
+
+    def test_restore_commands_nonempty(self):
+        import unittest.mock as mock
+        fake_status = self._snap.go.Status(
+            cpu_governor="performance", swappiness=10, thp="madvise",
+            vm_max_map_count=1048576, tcp_cc="bbr", tcp_qdisc="fq",
+            scx_running="scx_bpfland",
+        )
+        with mock.patch.object(self._snap.go, "read_status", return_value=fake_status):
+            s = self._snap.capture(name="restore_test")
+        cmds = self._snap.restore_commands(s)
+        self.assertIsInstance(cmds, list)
+        self.assertTrue(len(cmds) > 0)
+        # governor komutu üretilmeli
+        joined = " ".join(" ".join(c) for c in cmds)
+        self.assertIn("frequency-set", joined)
+
+    def test_format_snapshot(self):
+        import unittest.mock as mock
+        fake_status = self._snap.go.Status(cpu_governor="performance", kernel="6.12")
+        with mock.patch.object(self._snap.go, "read_status", return_value=fake_status):
+            s = self._snap.capture(name="fmt_test")
+        text = self._snap.format_snapshot(s)
+        self.assertIn("fmt_test", text)
+        self.assertIn("performance", text)
+
+
 if __name__ == "__main__":
     unittest.main()
 
