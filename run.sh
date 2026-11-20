@@ -14,6 +14,15 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 1
 fi
 
+# --- venv modülü kontrolü --------------------------------------------------
+if ! python3 -c "import venv" >/dev/null 2>&1; then
+    echo "[${APP_NAME}] UYARI: python3-venv modülü bulunamadı." >&2
+    echo "  Debian/Ubuntu: sudo apt install python3-venv" >&2
+    echo "  Arch/CachyOS : sudo pacman -S python" >&2
+    echo "  Fedora       : sudo dnf install python3" >&2
+    exit 1
+fi
+
 # --- Sanal ortam sağlığı ---------------------------------------------------
 venv_ok() {
     [ -f .venv/pyvenv.cfg ] \

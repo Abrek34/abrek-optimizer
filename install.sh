@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Abrek Optimizer — kullanıcı seviyesi kurulum (root/gerek sudo YOK).
+#   * Sistem bağımlılıklarını (python3, venv, pip) kontrol eder ve kurar
 #   * .venv oluşturur/update eder
 #   * pip install -e .  (paket + `abrek-optimizer` konsol scripti)
 #   * ~/.local/bin/abrek-optimizer wrapper'ı
@@ -27,9 +28,82 @@ fi
 
 cd "$PROJECT_DIR"
 
+# --- 0) Sistem bağımlılıkları kontrolü ve kurulumu -------------------------
+detect_pkg_manager() {
+    for pm in apt-get dnf pacman zypper; do
+        if command -v "$pm" >/dev/null 2>&1; then
+            echo "$pm"
+            return
+        fi
+    done
+    echo ""
+}
+
+install_system_deps() {
+    local pm="$1"
+    echo "[${APP_NAME}] Sistem bağımlılıkları kontrol ediliyor..."
+
+    case "$pm" in
+        apt-get)
+            # Python ve venv
+            if ! command -v python3 >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python3 kuruluyor..."
+                sudo apt-get update -qq
+                sudo apt-get install -y python3 python3-venv python3-pip
+            elif ! python3 -c "import venv" >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python3-venv kuruluyor..."
+                sudo apt-get update -qq
+                sudo apt-get install -y python3-venv python3-pip
+            fi
+            # pip güncel değilse güncelle
+            if ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
+                sudo apt-get install -y python3-pip
+            fi
+            ;;
+        dnf)
+            if ! command -v python3 >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python3 kuruluyor..."
+                sudo dnf install -y python3 python3-pip
+            elif ! python3 -c "import venv" >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python3-venv kuruluyor..."
+                sudo dnf install -y python3-pip
+            fi
+            ;;
+        pacman)
+            if ! command -v python3 >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python kuruluyor..."
+                sudo pacman -S --needed --noconfirm python python-pip
+            elif ! python3 -c "import venv" >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python-venv kuruluyor..."
+                sudo pacman -S --needed --noconfirm python
+            fi
+            ;;
+        zypper)
+            if ! command -v python3 >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python3 kuruluyor..."
+                sudo zypper --non-interactive install python3 python3-pip
+            elif ! python3 -c "import venv" >/dev/null 2>&1; then
+                echo "[${APP_NAME}] python3-venv kuruluyor..."
+                sudo zypper --non-interactive install python3
+            fi
+            ;;
+        *)
+            echo "[${APP_NAME}] UYARI: Desteklenen paket yöneticisi bulunamadı."
+            echo "[${APP_NAME}] Lütfen python3, python3-venv ve python3-pip'i manuel kurun."
+            ;;
+    esac
+}
+
+SYS_PM="$(detect_pkg_manager)"
+
 if ! command -v python3 >/dev/null 2>&1; then
-    echo "[${APP_NAME}] HATA: 'python3' bulunamadı." >&2
-    exit 1
+    echo "[${APP_NAME}] python3 bulunamadı — sistem bağımlılıkları kuruluyor..."
+    install_system_deps "$SYS_PM"
+fi
+
+if ! python3 -c "import venv" >/dev/null 2>&1; then
+    echo "[${APP_NAME}] python3-venv bulunamadı — sistem bağımlılıkları kuruluyor..."
+    install_system_deps "$SYS_PM"
 fi
 
 # --- 1) Sanal ortam --------------------------------------------------------
@@ -40,7 +114,6 @@ if [ ! -f .venv/pyvenv.cfg ] || ! .venv/bin/python -c "import sys" >/dev/null 2>
 fi
 
 # --- 2) Eski sürümü kaldır, paketi taze kur -------------------------------
-# Önce kurulu olan abrek-optimizer sürümünü sil; sonra editable olarak yeniden kur.
 if .venv/bin/pip show abrek-optimizer >/dev/null 2>&1; then
     echo "[${APP_NAME}] Eski sürüm kaldırılıyor..."
     .venv/bin/pip uninstall -y abrek-optimizer
@@ -48,6 +121,9 @@ fi
 echo "[${APP_NAME}] pip install -e ."
 .venv/bin/python -m pip install --upgrade pip wheel
 .venv/bin/python -m pip install -e .
+
+# Ek bağımlılıkları da kur (ruff vb. geliştirme araçları hariç)
+.venv/bin/python -m pip install --upgrade psutil PySide6
 
 # --- 3) Wrapper: ~/.local/bin/abrek-optimizer -----------------------------
 mkdir -p "$BIN_DIR"
@@ -61,11 +137,9 @@ echo "[${APP_NAME}] Wrapper: $WRAPPER"
 
 # --- 4) Desktop dosyası ----------------------------------------------------
 mkdir -p "$APP_DIR"
-# Desktop dosyası kullanıcının gerçek yollarına göre üretilir
 sed -e "s|^Exec=.*|Exec=$WRAPPER|" -e "s|^TryExec=.*|TryExec=$WRAPPER|" \
     "$PROJECT_DIR/AbrekOptimizer.desktop" > "$APP_DIR/AbrekOptimizer.desktop"
 chmod 0644 "$APP_DIR/AbrekOptimizer.desktop"
-# İkon
 install -Dm644 "$PROJECT_DIR/assets/abrek-optimizer.svg" \
     "$HOME/.local/share/icons/hicolor/scalable/apps/abrek-optimizer.svg"
 command -v update-desktop-database >/dev/null 2>&1 \
@@ -84,9 +158,6 @@ esac
 echo "[${APP_NAME}] Kurulum tamam. Çalıştır: abrek-optimizer  (veya ./run.sh)"
 
 # --- 6) İsteğe bağlı: sudo şifresiz kural (NOPASSWD) ------------------------
-# Abrek Optimizer'un çalıştırdığı sistem komutları için kullanıcıya tek seferlik
-# bir sudoers kuralı ekler; böylece her işlemde şifre sorulmaz.
-# Devre dışı bırakmak için:   ABREK_NOPASSWD=0 ./install.sh
 if [ "${ABREK_NOPASSWD:-1}" = "1" ]; then
     echo ""
     echo "[${APP_NAME}] ============================================================"
@@ -123,4 +194,6 @@ if [ "${ABREK_NOPASSWD:-1}" = "1" ]; then
             ;;
     esac
 fi
-
+EOF
+chmod +x install.sh
+echo "updated install.sh"
