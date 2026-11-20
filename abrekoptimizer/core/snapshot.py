@@ -14,6 +14,7 @@ Kaydedilen alanlar:
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
@@ -61,7 +62,7 @@ class SystemSnapshot:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SystemSnapshot":
+    def from_dict(cls, data: dict[str, Any]) -> SystemSnapshot:
         fields = set(cls.__dataclass_fields__)
         return cls(**{k: v for k, v in data.items() if k in fields})
 
@@ -111,14 +112,10 @@ def capture(name: str = "", notes: str = "") -> SystemSnapshot:
     # Abrek sysctl config içeriğini kaydet
     conf = Path("/etc/sysctl.d/99-abrekoptimizer.conf")
     bak = Path("/etc/sysctl.d/99-abrekoptimizer.bak")
-    try:
+    with contextlib.suppress(OSError):
         snap.abrek_sysctl_conf = conf.read_text() if conf.exists() else ""
-    except OSError:
-        pass
-    try:
+    with contextlib.suppress(OSError):
         snap.abrek_sysctl_bak = bak.read_text() if bak.exists() else ""
-    except OSError:
-        pass
 
     save(snap)
     return snap

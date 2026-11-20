@@ -6,7 +6,6 @@ import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-
 _LOG_DIR = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "abrek"
 _LOG_FILE = _LOG_DIR / "abrek.log"
 

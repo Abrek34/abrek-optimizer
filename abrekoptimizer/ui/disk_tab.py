@@ -5,13 +5,19 @@ from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QHBoxLayout, QHeaderView, QLabel, QProgressBar,
-    QPushButton, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import cleaner as cl
+from abrekoptimizer.i18n import tr as _
 
 
 class DiskScanWorker(QThread):

@@ -3,27 +3,37 @@ from __future__ import annotations
 
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QMainWindow, QMessageBox, QStatusBar, QTabWidget, QWidget,
+    QMainWindow,
+    QMessageBox,
+    QStatusBar,
+    QTabWidget,
+    QWidget,
 )
 
 from abrekoptimizer import __app_name__, __version__, i18n
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import applog
 from abrekoptimizer.core.pkgmanager import PackageManager
+from abrekoptimizer.i18n import tr as _
+from abrekoptimizer.ui.autostart_tab import AutostartTab
+from abrekoptimizer.ui.cleaner_tab import CleanerTab, ScanWorker
+from abrekoptimizer.ui.disk_tab import DiskScanWorker, DiskTab
+from abrekoptimizer.ui.game_tab import GameModeTab, GameStatusWorker
+from abrekoptimizer.ui.history_tab import HistoryTab
+from abrekoptimizer.ui.overview_tab import OverviewTab
 
 # Sekmeler (ayrı modüllerden)
 from abrekoptimizer.ui.packages_tab import PackageListWorker, PackagesTab
-from abrekoptimizer.ui.cleaner_tab import ScanWorker, CleanerTab
-from abrekoptimizer.ui.autostart_tab import AutostartTab
 from abrekoptimizer.ui.perf_tab import PerfTab
-from abrekoptimizer.ui.game_tab import GameModeTab, GameStatusWorker
-from abrekoptimizer.ui.overview_tab import OverviewTab
-from abrekoptimizer.ui.history_tab import HistoryTab
-from abrekoptimizer.ui.disk_tab import DiskScanWorker, DiskTab
 from abrekoptimizer.ui.report_tab import BenchWorker, ReportTab
+
 # Geriye dönük uyumluluk (eski import yolları)
 from abrekoptimizer.ui.runtime import (
-    CommandDialog, confirm_and_run, notify, run_in_app, run_in_terminal, shorten_detail,
+    CommandDialog,
+    confirm_and_run,
+    notify,
+    run_in_app,
+    run_in_terminal,
+    shorten_detail,
 )
 
 __all__ = [

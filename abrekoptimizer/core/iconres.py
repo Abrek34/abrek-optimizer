@@ -24,7 +24,6 @@ from pathlib import Path
 
 from PySide6.QtGui import QIcon
 
-
 # Tüm alt-süreçler için İngilizce çıktı zorla — Türkçe locale'da
 # 'is owned by' yerine 'paketine ait' yazıyor; regex bozulur.
 _C_ENV = {**os.environ, "LC_ALL": "C", "LANG": "C", "LANGUAGE": "C"}

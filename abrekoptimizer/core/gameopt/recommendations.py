@@ -3,11 +3,23 @@ from __future__ import annotations
 
 from ._helpers import has, ppd_available_profiles
 from .commands import (
-    cmd_amd_gpu_perf_level, cmd_amd_x3d_mode, cmd_enable_bbr,
-    cmd_enable_service, cmd_kwin_allow_tearing, cmd_kwin_latency_policy,
-    cmd_nvidia_max_perf, cmd_pipewire_rt, cmd_power_profile,
-    cmd_scx_set_scheduler, cmd_set_epp, cmd_set_governor, cmd_set_swappiness,
-    cmd_set_thp, cmd_setup_zram, cmd_sysctl, install_packages_command,
+    cmd_amd_gpu_perf_level,
+    cmd_amd_x3d_mode,
+    cmd_enable_bbr,
+    cmd_enable_service,
+    cmd_kwin_allow_tearing,
+    cmd_kwin_latency_policy,
+    cmd_nvidia_max_perf,
+    cmd_pipewire_rt,
+    cmd_power_profile,
+    cmd_scx_set_scheduler,
+    cmd_set_epp,
+    cmd_set_governor,
+    cmd_set_swappiness,
+    cmd_set_thp,
+    cmd_setup_zram,
+    cmd_sysctl,
+    install_packages_command,
 )
 from .models import Recommendation, Status
 

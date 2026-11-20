@@ -7,10 +7,14 @@ from __future__ import annotations
 
 import shlex
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPlainTextEdit,
-    QScrollArea, QVBoxLayout, QWidget,
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QPlainTextEdit,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
 )
 
 

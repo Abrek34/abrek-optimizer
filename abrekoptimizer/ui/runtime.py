@@ -7,14 +7,18 @@ from pathlib import Path
 from PySide6.QtCore import QProcess
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QApplication, QDialog, QDialogButtonBox, QMessageBox,
-    QPlainTextEdit, QProgressBar, QVBoxLayout,
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QVBoxLayout,
 )
 
 from abrekoptimizer import __app_name__
+from abrekoptimizer.core import applog, history
 from abrekoptimizer.i18n import tr as _
-from abrekoptimizer.core import applog
-from abrekoptimizer.core import history
 
 
 def confirm_and_run(parent, cmd: list[str], body: str | None = None) -> bool:
@@ -32,7 +36,8 @@ def confirm_and_run(parent, cmd: list[str], body: str | None = None) -> bool:
 
 def run_in_terminal(cmd: list[str]) -> bool:
     """Komutu konsol uygulamasında çalıştır (sudo şifresi için)."""
-    import shlex, shutil
+    import shlex
+    import shutil
     log = applog.get("ui")
     joined = " ".join(shlex.quote(c) for c in cmd)
     log.info("terminal command: %s", joined)

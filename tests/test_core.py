@@ -221,6 +221,7 @@ class TestAutostart(unittest.TestCase):
     def test_parse_desktop_basic(self):
         import tempfile
         from pathlib import Path
+
         from abrekoptimizer.core import autostart as au
         content = (
             "[Desktop Entry]\n"
@@ -243,6 +244,7 @@ class TestAutostart(unittest.TestCase):
     def test_parse_desktop_hidden(self):
         import tempfile
         from pathlib import Path
+
         from abrekoptimizer.core import autostart as au
         content = (
             "[Desktop Entry]\n"
@@ -259,9 +261,10 @@ class TestAutostart(unittest.TestCase):
 
     def test_set_xdg_enabled_creates_override(self):
         import tempfile
-        from pathlib import Path
-        from abrekoptimizer.core import autostart as au
         import unittest.mock as mock
+        from pathlib import Path
+
+        from abrekoptimizer.core import autostart as au
         content = "[Desktop Entry]\nName=Test\nExec=/usr/bin/test\n"
         with tempfile.TemporaryDirectory() as d:
             # patch home
@@ -282,8 +285,8 @@ class TestAutostart(unittest.TestCase):
 
 class TestProfiles(unittest.TestCase):
     def test_capture_and_commands(self):
-        from abrekoptimizer.core import profiles as prof
         from abrekoptimizer.core import gameopt as go
+        from abrekoptimizer.core import profiles as prof
         st = go.Status(
             cpu_governor="performance", epp="performance",
             power_profile="performance", swappiness=10, thp="madvise",
@@ -301,7 +304,9 @@ class TestProfiles(unittest.TestCase):
         self.assertIn("tcp_congestion_control", joined)
 
     def test_save_load_roundtrip(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         from abrekoptimizer.core import profiles as prof
         tmp = pathlib.Path(tempfile.mkdtemp()) / "profiles.json"
         with unittest.mock.patch.object(prof, "PROFILES_FILE", tmp):
@@ -313,7 +318,9 @@ class TestProfiles(unittest.TestCase):
             self.assertTrue(loaded["x"].bbr)
 
     def test_load_corrupt_file(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         from abrekoptimizer.core import profiles as prof
         tmp = pathlib.Path(tempfile.mkdtemp()) / "profiles.json"
         tmp.write_text("not json {{{")
@@ -324,7 +331,9 @@ class TestProfiles(unittest.TestCase):
 
 class TestHistoryExtra(unittest.TestCase):
     def test_record_and_entries(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         from abrekoptimizer.core import history as h
         tmp = pathlib.Path(tempfile.mkdtemp()) / "history.jsonl"
         with unittest.mock.patch.object(h, "HISTORY_FILE", tmp):
@@ -337,7 +346,9 @@ class TestHistoryExtra(unittest.TestCase):
             self.assertTrue(ents[1]["ok"])
 
     def test_entries_limit(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         from abrekoptimizer.core import history as h
         tmp = pathlib.Path(tempfile.mkdtemp()) / "history.jsonl"
         with unittest.mock.patch.object(h, "HISTORY_FILE", tmp):
@@ -347,7 +358,9 @@ class TestHistoryExtra(unittest.TestCase):
             self.assertEqual(len(ents), 3)
 
     def test_entries_empty_file(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         from abrekoptimizer.core import history as h
         tmp = pathlib.Path(tempfile.mkdtemp()) / "nonexistent.jsonl"
         with unittest.mock.patch.object(h, "HISTORY_FILE", tmp):
@@ -356,7 +369,8 @@ class TestHistoryExtra(unittest.TestCase):
 
 class TestSnapshot(unittest.TestCase):
     def setUp(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
         self._tmp = tempfile.mkdtemp()
         self._old_dir = None
         import abrekoptimizer.core.snapshot as snap
@@ -435,7 +449,7 @@ class TestPlanDialog(unittest.TestCase):
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
         from abrekoptimizer.ui.plan_dialog import PlanDialog
         cmds = [["echo", "hello"], ["echo", "world"]]
         descs = ["Say hello", "Say world"]
@@ -449,7 +463,9 @@ if __name__ == "__main__":
 
 class TestTrend(unittest.TestCase):
     def test_rate_limit(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         import abrekoptimizer.core.trend as tr
         old = tr.TREND_FILE
         try:
@@ -483,7 +499,9 @@ class TestGameOptExtras(unittest.TestCase):
         self.assertEqual(len(p.commands()), 8)
 
     def test_history_roundtrip(self):
-        import tempfile, pathlib
+        import pathlib
+        import tempfile
+
         import abrekoptimizer.core.history as h
         old = h.HISTORY_FILE
         try:

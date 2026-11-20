@@ -1,17 +1,27 @@
 """Performans sekmesi."""
 from __future__ import annotations
 
+import contextlib
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMessageBox,
-    QProgressBar, QPushButton, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
-from abrekoptimizer.core import perfmon as pm
 from abrekoptimizer.core import cleaner as cl
+from abrekoptimizer.core import perfmon as pm
+from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.ui.charts import TimeSeriesChart
 
 
@@ -86,10 +96,8 @@ class PerfTab(QWidget):
         self.mem_bar.bar.setValue(int(s.mem_percent))
         self.swap_bar.bar.setValue(int(s.swap_percent))
         self.disk_bar.bar.setValue(int(s.disk_percent))
-        try:
+        with contextlib.suppress(Exception):
             self.chart.push({"CPU": s.cpu_percent, "RAM": s.mem_percent, "GPU": s.gpu_busy})
-        except Exception:
-            pass
         self.info_lbl.setText(
             _("RAM: <b>{used}</b> / {total} &nbsp;|&nbsp; Disk: <b>{dused}</b> / {dtotal} &nbsp;|&nbsp; "
               "Süreç: <b>{procs}</b> &nbsp;|&nbsp; Yük: {l1:.2f} {l2:.2f} {l3:.2f} &nbsp;|&nbsp; "
@@ -155,7 +163,8 @@ class PerfTab(QWidget):
         rows = sorted({i.row() for i in self.proc_table.selectedIndexes()})
         if not rows:
             return
-        import os, signal
+        import os
+        import signal
         pids = [self.proc_table.item(r, 0).text() for r in rows]
         reply = QMessageBox.question(
             self,

@@ -3,14 +3,22 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QHBoxLayout, QHeaderView, QLabel, QMessageBox,
-    QPushButton, QTableWidget, QTableWidgetItem, QTextEdit,
-    QVBoxLayout, QWidget,
+    QCheckBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import cleaner as cl
 from abrekoptimizer.core import history
+from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.ui.runtime import notify, run_in_app
 
 

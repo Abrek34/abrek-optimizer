@@ -1,13 +1,20 @@
 """İşlem geçmişi sekmesi."""
 from __future__ import annotations
 
+import contextlib
+
 from PySide6.QtWidgets import (
-    QHBoxLayout, QHeaderView, QPushButton,
-    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QHBoxLayout,
+    QHeaderView,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import history
+from abrekoptimizer.i18n import tr as _
 
 
 class HistoryTab(QWidget):
@@ -29,10 +36,8 @@ class HistoryTab(QWidget):
 
     def showEvent(self, ev):
         # Geçmiş sekmesine geçilince yeni kayıtları yükle
-        try:
+        with contextlib.suppress(Exception):
             self.reload()
-        except Exception:
-            pass
         super().showEvent(ev)
 
     def reload(self):

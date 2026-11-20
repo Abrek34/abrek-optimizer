@@ -1,6 +1,7 @@
 """Sistem durumu tespiti (read-only)."""
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import subprocess
@@ -92,10 +93,8 @@ def _zram_size() -> int:
     """Toplam zram disksize (bytes)."""
     total = 0
     for p in Path("/sys/block").glob("zram*/disksize"):
-        try:
+        with contextlib.suppress(OSError, ValueError):
             total += int(p.read_text().strip() or 0)
-        except (OSError, ValueError):
-            pass
     return total
 
 
@@ -158,14 +157,10 @@ def read_status() -> Status:
     st.tcp_qdisc = _run(["sysctl", "-n", "net.core.default_qdisc"]).strip()
 
     # Bellek
-    try:
+    with contextlib.suppress(ValueError):
         st.swappiness = int(_read("/proc/sys/vm/swappiness") or 60)
-    except ValueError:
-        pass
-    try:
+    with contextlib.suppress(ValueError):
         st.vm_max_map_count = int(_read("/proc/sys/vm/max_map_count") or 0)
-    except ValueError:
-        pass
     thp = _read("/sys/kernel/mm/transparent_hugepage/enabled")
     m = re.search(r"\[(\w+)\]", thp)
     st.thp = m.group(1) if m else thp

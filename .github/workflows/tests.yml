@@ -14,7 +14,9 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install PySide6 psutil pytest pytest-qt
+          pip install PySide6 psutil pytest pytest-qt ruff
+      - name: Lint (ruff)
+        run: ruff check abrekoptimizer/ tests/
       - name: Run tests (offscreen Qt)
         env:
           QT_QPA_PLATFORM: offscreen

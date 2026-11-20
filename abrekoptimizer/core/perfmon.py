@@ -1,6 +1,7 @@
 """Performans ölçümleri (psutil + sysfs)."""
 from __future__ import annotations
 
+import contextlib
 import shutil
 import subprocess
 import time
@@ -50,10 +51,8 @@ psutil.cpu_percent(interval=None)
 psutil.cpu_percent(interval=None, percpu=True)
 # process iter cpu_percent için de prime
 for _p in psutil.process_iter():
-    try:
+    with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied):
         _p.cpu_percent(interval=None)
-    except (psutil.NoSuchProcess, psutil.AccessDenied):
-        pass
 
 
 def _read_int(path: str) -> int:
@@ -72,9 +71,8 @@ def _cpu_temp() -> float:
     for key in ("coretemp", "k10temp", "zenpower", "amdgpu", "cpu_thermal", "acpitz"):
         if key in temps and temps[key]:
             for t in temps[key]:
-                if t.label in ("Package id 0", "Tctl", "Tdie", "") or "Package" in (t.label or ""):
-                    if t.current:
-                        return float(t.current)
+                if (t.label in ("Package id 0", "Tctl", "Tdie", "") or "Package" in (t.label or "")) and t.current:
+                    return float(t.current)
             return float(temps[key][0].current or 0.0)
     return 0.0
 
@@ -93,10 +91,8 @@ def _gpu_info() -> tuple[float, float, int, int, str]:
         # busy%
         b = dev / "gpu_busy_percent"
         if b.exists():
-            try:
+            with contextlib.suppress(OSError, ValueError):
                 busy = float(b.read_text().strip())
-            except (OSError, ValueError):
-                pass
         # vram
         u = dev / "mem_info_vram_used"
         t = dev / "mem_info_vram_total"
@@ -206,10 +202,8 @@ def snapshot() -> Snapshot:
     _prev_net = cur_net
     _prev_time = now
 
-    try:
+    with contextlib.suppress(AttributeError, OSError):
         s.load_avg = psutil.getloadavg()
-    except (AttributeError, OSError):
-        pass
 
     s.boot_time = psutil.boot_time()
     s.process_count = len(psutil.pids())

@@ -1,22 +1,27 @@
 """Sistem raporu sekmesi."""
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QHBoxLayout, QMessageBox, QPlainTextEdit, QPushButton,
-    QTextEdit, QVBoxLayout, QWidget,
+    QHBoxLayout,
+    QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import cleaner as cl
 from abrekoptimizer.core import gameopt as go
+from abrekoptimizer.core import history, trend
 from abrekoptimizer.core import perfmon as pm
-from abrekoptimizer.core import history
-from abrekoptimizer.core import trend
-from abrekoptimizer.ui.runtime import notify
+from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.ui.game_tab import GameStatusWorker
+from abrekoptimizer.ui.runtime import notify
 
 
 class BenchWorker(QThread):
@@ -25,9 +30,9 @@ class BenchWorker(QThread):
     def run(self):
         import math
         import os
+        import pathlib
         import tempfile
         import time
-        import pathlib
         res: dict = {}
         try:
             t0 = time.perf_counter()
@@ -51,10 +56,8 @@ class BenchWorker(QThread):
             t0 = time.perf_counter()
             p.write_bytes(data)
             res["disk_mbps"] = len(data) / (time.perf_counter() - t0) / 1e6
-            try:
+            with contextlib.suppress(OSError):
                 p.unlink()
-            except OSError:
-                pass
         except Exception:
             res["disk_mbps"] = 0.0
         self.done.emit(res)
@@ -117,7 +120,7 @@ class ReportTab(QWidget):
 
     def _export(self):
         from PySide6.QtWidgets import QFileDialog
-        path, _ = QFileDialog.getSaveFileName(
+        path, _filter = QFileDialog.getSaveFileName(
             self, _("Raporu kaydet"), "abrek-rapor.html", "HTML (*.html);;Text (*.txt)")
         if not path:
             return

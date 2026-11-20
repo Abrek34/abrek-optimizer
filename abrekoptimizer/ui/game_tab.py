@@ -3,18 +3,28 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-    QMessageBox, QPushButton, QScrollArea, QSpinBox, QTextEdit,
-    QVBoxLayout, QWidget,
+    QComboBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import gameopt as go
 from abrekoptimizer.core import history
 from abrekoptimizer.core import profiles as prof
 from abrekoptimizer.core import snapshot as snap
-from abrekoptimizer.ui.runtime import confirm_and_run, notify, run_in_app
+from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.ui.plan_dialog import PlanDialog
+from abrekoptimizer.ui.runtime import confirm_and_run, notify, run_in_app
 
 
 class GameStatusWorker(QThread):

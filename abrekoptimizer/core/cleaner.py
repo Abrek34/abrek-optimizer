@@ -1,12 +1,12 @@
 """Cache, log, çöp ve geçici dosya temizleyici."""
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-
 
 # Temizleme sırasında ASLA dokunulmayacak dizinler (veri güvenliği).
 PROTECTED_PREFIXES: list[Path] = [
@@ -58,10 +58,8 @@ class CleanTarget:
                 else:
                     for root, _dirs, files in os.walk(p, onerror=lambda e: None, followlinks=False):
                         for f in files:
-                            try:
+                            with contextlib.suppress(OSError):
                                 total += os.lstat(os.path.join(root, f)).st_size
-                            except OSError:
-                                pass
             except (OSError, PermissionError):
                 pass
         return total
@@ -107,10 +105,8 @@ def _dir_size(path: Path) -> int:
     total = 0
     for root, _d, files in os.walk(path, onerror=lambda e: None, followlinks=False):
         for f in files:
-            try:
+            with contextlib.suppress(OSError):
                 total += os.lstat(os.path.join(root, f)).st_size
-            except OSError:
-                pass
     return total
 
 

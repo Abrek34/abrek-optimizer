@@ -3,15 +3,20 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QFormLayout, QGroupBox, QHBoxLayout, QLabel,
-    QProgressBar, QVBoxLayout, QWidget,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
-from abrekoptimizer.core import perfmon as pm
 from abrekoptimizer.core import cleaner as cl
 from abrekoptimizer.core import gameopt as go
+from abrekoptimizer.core import perfmon as pm
 from abrekoptimizer.core import trend
+from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.ui.game_tab import GameStatusWorker
 
 

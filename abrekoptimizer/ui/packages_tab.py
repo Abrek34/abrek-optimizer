@@ -3,18 +3,27 @@ from __future__ import annotations
 
 import subprocess
 
-from PySide6.QtCore import QThread, Signal, QSize
+from PySide6.QtCore import QSize, QThread, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QMessageBox, QPushButton, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget,
+    QAbstractItemView,
+    QCheckBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
-from abrekoptimizer.core import iconres as ico
 from abrekoptimizer.core import history
+from abrekoptimizer.core import iconres as ico
 from abrekoptimizer.core.pkgmanager import PackageManager
-from abrekoptimizer.ui.runtime import run_in_app, run_in_terminal, shorten_detail
+from abrekoptimizer.i18n import tr as _
+from abrekoptimizer.ui.runtime import run_in_app, shorten_detail
 
 
 class PackageListWorker(QThread):

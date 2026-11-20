@@ -4,8 +4,8 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 
 @dataclass
@@ -37,7 +37,7 @@ class PackageManager:
     needs_sudo: bool = True
 
     @classmethod
-    def detect(cls) -> "PackageManager":
+    def detect(cls) -> PackageManager:
         for klass in (Pacman, Apt, Dnf, Zypper):
             if shutil.which(klass.bin):
                 return klass()

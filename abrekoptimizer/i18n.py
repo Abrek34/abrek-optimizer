@@ -1,6 +1,7 @@
 """Basit dil çevirisi (TR/EN)."""
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -322,10 +323,8 @@ def save(lang: str) -> None:
     _current = lang
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     data = {}
-    try:
+    with contextlib.suppress(OSError, ValueError):
         data = json.loads(CONFIG_FILE.read_text())
-    except (OSError, ValueError):
-        pass
     data["language"] = lang
     CONFIG_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 

@@ -23,3 +23,11 @@ include = ["abrekoptimizer*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "abrekoptimizer.__version__" }
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501", "E702"]

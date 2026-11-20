@@ -4,15 +4,23 @@ from __future__ import annotations
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QCheckBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
-    QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget,
+    QCheckBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
-from abrekoptimizer.i18n import tr as _
 from abrekoptimizer.core import autostart as au
-from abrekoptimizer.core import iconres as ico
 from abrekoptimizer.core import history
+from abrekoptimizer.core import iconres as ico
+from abrekoptimizer.i18n import tr as _
 
 
 class AutostartTab(QWidget):

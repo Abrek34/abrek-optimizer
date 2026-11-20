@@ -3,7 +3,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from abrekoptimizer import __app_id__, __app_name__, i18n
+from abrekoptimizer import __app_id__, i18n
 from abrekoptimizer.core import applog
 from abrekoptimizer.core.pkgmanager import PackageManager
 from abrekoptimizer.ui.main_window import MainWindow
