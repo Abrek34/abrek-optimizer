@@ -19,8 +19,6 @@ dist/
 !.env.example
 
 *.log
-/core
-/core.*
 
 .DS_Store
 Thumbs.db
